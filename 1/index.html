@@ -1,0 +1,911 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0A0C10" />
+    <title>نظام كروت NFC - المحمي بالـ Hardware UID</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@700;800;900&family=Cairo:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Firebase JS SDK (Compat Versions) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+      :root {
+        --bg: #0a0c10;
+        --surface: #13161d;
+        --surface-2: #1a1e27;
+        --surface-3: #20242f;
+        --line: rgba(212, 175, 55, 0.18);
+        --line-soft: rgba(255, 255, 255, 0.07);
+        --gold: #d4af37;
+        --gold-2: #f1da8c;
+        --cyan: #2fd9c7;
+        --text: #f4f1ea;
+        --text-dim: #9ba3b0;
+        --text-mute: #616875;
+        --danger: #f87171;
+        --success: #34d399;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Cairo", sans-serif;
+        background-color: var(--bg);
+        background-image:
+          radial-gradient(
+            circle at 50% -12%,
+            rgba(212, 175, 55, 0.16),
+            transparent 55%
+          ),
+          radial-gradient(
+            circle at 100% 110%,
+            rgba(47, 217, 199, 0.08),
+            transparent 45%
+          ),
+          repeating-linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.015) 0px,
+            rgba(255, 255, 255, 0.015) 1px,
+            transparent 1px,
+            transparent 26px
+          );
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      .font-display {
+        font-family: "Tajawal", sans-serif;
+      }
+
+      .frame {
+        position: relative;
+        background: linear-gradient(
+          175deg,
+          var(--surface) 0%,
+          var(--surface-2) 100%
+        );
+        border: 1px solid var(--line-soft);
+        border-radius: 28px;
+        box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.85);
+        overflow: hidden;
+        animation: rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      }
+      .frame::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--gold) 25%,
+          var(--cyan) 55%,
+          transparent 85%
+        );
+        opacity: 0.85;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(14px) scale(0.985);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .card-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--line-soft);
+        background: rgba(255, 255, 255, 0.015);
+      }
+      .card-topbar .chip {
+        width: 26px;
+        height: 20px;
+        border-radius: 5px;
+        background: linear-gradient(
+          135deg,
+          var(--gold-2),
+          var(--gold) 60%,
+          #8a6c14
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #1a1305;
+        font-size: 11px;
+      }
+      .card-topbar .label {
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        color: var(--text-mute);
+        font-weight: 700;
+      }
+      .card-topbar .wave {
+        color: var(--cyan);
+        font-size: 14px;
+      }
+
+      .avatar-wrap {
+        position: relative;
+        width: 118px;
+        height: 118px;
+        margin: 28px auto 18px;
+      }
+      .avatar-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 9999px;
+        border: 2px solid rgba(212, 175, 55, 0.55);
+        background: var(--surface-3);
+      }
+
+      .view-name {
+        font-size: 1.6rem;
+        font-weight: 900;
+      }
+      .view-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--cyan);
+        text-transform: uppercase;
+        margin-top: 2px;
+      }
+      .view-bio {
+        color: var(--text-dim);
+        font-size: 0.8rem;
+        line-height: 1.7;
+      }
+
+      .links-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .link-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 16px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-soft);
+        color: var(--text);
+        text-decoration: none;
+        transition: all 0.15s ease;
+      }
+      .link-item:hover {
+        transform: translateY(-2px);
+        border-color: var(--line);
+        background: var(--surface-3);
+      }
+      .link-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+      .link-badge {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex-shrink: 0;
+      }
+      .link-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .badge-google {
+        background: rgba(212, 175, 55, 0.16);
+        color: var(--gold-2);
+      }
+      .badge-whatsapp {
+        background: rgba(52, 211, 153, 0.16);
+        color: #34d399;
+      }
+      .badge-phone {
+        background: rgba(96, 165, 250, 0.16);
+        color: #60a5fa;
+      }
+      .badge-website {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+      .badge-location {
+        background: rgba(248, 113, 113, 0.16);
+        color: #f87171;
+      }
+      .badge-pdf {
+        background: rgba(251, 146, 60, 0.16);
+        color: #fb923c;
+      }
+      .badge-facebook {
+        background: rgba(59, 130, 246, 0.16);
+        color: #3b82f6;
+      }
+      .badge-instagram {
+        background: rgba(232, 64, 148, 0.16);
+        color: #e84094;
+      }
+      .badge-youtube {
+        background: rgba(239, 68, 68, 0.16);
+        color: #ef4444;
+      }
+      .badge-custom {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-dim);
+      }
+      .badge-tiktok {
+        background-color: #000000;
+        color: #ffffff;
+      }
+
+      .field-label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--text-dim);
+        margin-bottom: 6px;
+      }
+      .field-label.accent {
+        color: var(--gold-2);
+      }
+
+      .field-input {
+        width: 100%;
+        background: var(--bg);
+        border: 1px solid var(--line-soft);
+        border-radius: 14px;
+        padding: 11px 16px;
+        font-size: 0.85rem;
+        color: var(--text);
+      }
+      .field-input:focus {
+        outline: none;
+        border-color: var(--gold);
+      }
+
+      .btn-save {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: linear-gradient(
+          135deg,
+          var(--gold-2) 0%,
+          var(--gold) 55%,
+          #a6811f 100%
+        );
+        color: #1a1305;
+        font-weight: 800;
+        font-size: 0.92rem;
+        padding: 15px 20px;
+        border-radius: 18px;
+      }
+
+      .spin-ring {
+        width: 40px;
+        height: 40px;
+        margin: 0 auto 12px;
+        border: 3px solid var(--line-soft);
+        border-top-color: var(--gold);
+        border-radius: 9999px;
+        animation: spin 0.9s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex flex-col items-center justify-center p-4">
+    <!-- ========================================== -->
+    <!-- 1. VIEW MODE: صفحة عرض بيانات الكارت للعميل  -->
+    <!-- ========================================== -->
+    <div id="card-view" class="frame w-full max-w-md hidden my-auto">
+      <div class="card-topbar">
+        <span class="chip"><i class="fa-solid fa-microchip"></i></span>
+        <span class="label">SECURED NFC CARD</span>
+        <span class="wave"><i class="fa-solid fa-wifi"></i></span>
+      </div>
+
+      <div class="p-6 text-center">
+        <div class="avatar-wrap">
+          <img id="view-avatar" src="" alt="Profile" />
+        </div>
+
+        <h1 id="view-name" class="font-display view-name"></h1>
+        <p id="view-title" class="view-title"></p>
+        <p id="view-bio" class="view-bio mt-3 mb-6 px-2"></p>
+
+        <div id="dynamic-links-container" class="links-list mb-2"></div>
+
+        <!-- زر التعديل مخفي بالكامل ولا يظهر إلا عند تفعيل isEditable من الداتا بيز -->
+        <div
+          id="edit-action-container"
+          class="mt-6 pt-4 border-t border-[var(--line-soft)] hidden"
+        >
+          <button
+            id="btn-edit-card"
+            onclick="editCurrentCard()"
+            class="btn-save text-xs py-3"
+          >
+            <i class="fa-solid fa-pen-to-square text-sm"></i>
+            <span>تعديل بيانات الكارت</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 2. ADMIN GENERATOR MODE: لوحة الآدمن للإنشاء -->
+    <!-- ========================================== -->
+    <div
+      id="generator-view"
+      class="frame w-full max-w-2xl hidden my-6 p-6 sm:p-8"
+    >
+      <div class="text-center mb-7">
+        <div
+          class="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-amber-500/10 border border-[var(--line)] text-[var(--gold-2)] text-xl"
+        >
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2
+          id="generator-heading"
+          class="font-display text-xl font-extrabold text-white"
+        >
+          لوحة تحكم الآدمن - إدارة الكروت
+        </h2>
+        <p class="text-xs text-[var(--text-dim)] mt-1.5">
+          تم التحقق من كارت الآدمن بنجاح بواسطة الـ Unique Hardware ID
+        </p>
+      </div>
+
+      <div class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="field-label accent"
+              >كود الكارت (Unique ID / Slug) *</label
+            >
+            <input
+              type="text"
+              id="input-card-id"
+              placeholder="مثال: client_001"
+              class="field-input"
+            />
+          </div>
+          <div>
+            <label class="field-label accent"
+              >الرقم التسلسلي للفرع/الشريحة (NFC Hardware UID) *</label
+            >
+            <input
+              type="text"
+              id="input-hardware-uid"
+              placeholder="مثال: 04:A2:B3:C4:D5:E6:F7"
+              class="field-input font-mono"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="field-label">الاسم الكامل *</label>
+            <input
+              type="text"
+              id="input-name"
+              placeholder="مثال: أحمد عادل"
+              class="field-input"
+            />
+          </div>
+          <div>
+            <label class="field-label">المسمى الوظيفي</label>
+            <input
+              type="text"
+              id="input-title"
+              placeholder="مثال: مهندس برمجيات"
+              class="field-input"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="field-label">رابط الصورة الشخصية (URL)</label>
+            <input
+              type="url"
+              id="input-img"
+              placeholder="https://..."
+              class="field-input"
+            />
+          </div>
+          <div>
+            <label class="field-label">نبذة قصيرة</label>
+            <input
+              type="text"
+              id="input-bio"
+              placeholder="وصف قصير..."
+              class="field-input"
+            />
+          </div>
+        </div>
+
+        <div class="border-t border-[var(--line-soft)] pt-4 mt-4">
+          <div class="flex items-center justify-between mb-3">
+            <label class="font-display text-sm font-bold text-white"
+              >الروابط والأرقام</label
+            >
+            <button
+              type="button"
+              onclick="addLinkRow()"
+              class="text-xs text-[var(--gold-2)] bg-[var(--surface-3)] px-3 py-1.5 rounded-lg border border-[var(--line-soft)]"
+            >
+              <i class="fa-solid fa-plus"></i> إضافة رابط
+            </button>
+          </div>
+          <div id="custom-links-builder" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <div class="border-t border-[var(--line-soft)] pt-5 mt-6">
+        <button onclick="saveCardToFirebase()" id="btn-save" class="btn-save">
+          <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+          <span>حفظ الكارت وتقييده بالـ UID</span>
+        </button>
+      </div>
+
+      <div
+        id="result-box"
+        class="bg-[var(--surface-2)] border border-emerald-500/40 rounded-xl p-4 mt-6 hidden"
+      >
+        <p class="text-emerald-400 font-bold text-xs mb-2">
+          <i class="fa-solid fa-circle-check"></i> تم حفظ الكارت وتقييده بالـ
+          Hardware UID!
+        </p>
+        <p class="text-[11px] text-[var(--text-dim)] mb-1.5">
+          اكتب هذا الرابط المباشر على كارت NFC العملاء:
+        </p>
+        <input
+          type="text"
+          id="generated-nfc-url"
+          readonly
+          class="field-input font-mono text-xs text-[var(--cyan)]"
+        />
+      </div>
+    </div>
+
+    <!-- 3. LOADING & ERROR STATES -->
+    <div id="loading-state" class="text-center hidden">
+      <div class="spin-ring"></div>
+      <p class="text-sm text-[var(--text-dim)]">
+        جاري فحص الـ Hardware Unique ID والبيانات...
+      </p>
+    </div>
+
+    <div id="error-state" class="frame p-7 text-center max-w-sm hidden my-auto">
+      <i
+        id="error-icon"
+        class="fa-solid fa-shield-xmark text-4xl text-rose-500 mb-3"
+      ></i>
+      <h2
+        id="error-title"
+        class="font-display text-lg font-extrabold text-white mb-1"
+      >
+        وصول غير مصرح به
+      </h2>
+      <p id="error-msg" class="text-[var(--text-dim)] text-xs mb-4">
+        هذا الكارت مقفول أو تم نسخه على شريحة غير أصلية.
+      </p>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- JavaScript Logic                           -->
+    <!-- ========================================== -->
+    <script>
+      // 🔑 كود معرف الآدمن الرئيسي في السيرفر
+      const MASTER_ADMIN_ID = "admin-master";
+
+      const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        databaseURL:
+          "https://mycard-nfc-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "1234567890",
+        appId: "1:1234567890:web:abcdef123456",
+      };
+
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+      const auth = firebase.auth();
+
+      auth
+        .signInAnonymously()
+        .catch((err) => console.warn("Anon Auth Error:", err));
+
+      let activeCardId = null;
+      let activeCardData = null;
+
+      const iconTypes = {
+        google: {
+          icon: "fa-solid fa-star",
+          label: "تقييم جوجل ماب",
+          badgeClass: "badge-google",
+        },
+        whatsapp: {
+          icon: "fa-brands fa-whatsapp",
+          label: "واتساب",
+          badgeClass: "badge-whatsapp",
+        },
+        phone: {
+          icon: "fa-solid fa-phone",
+          label: "اتصال هاتف",
+          badgeClass: "badge-phone",
+        },
+        website: {
+          icon: "fa-solid fa-globe",
+          label: "موقع / متجر",
+          badgeClass: "badge-website",
+        },
+        location: {
+          icon: "fa-solid fa-location-dot",
+          label: "عنوان / خريطة",
+          badgeClass: "badge-location",
+        },
+        pdf: {
+          icon: "fa-solid fa-file-pdf",
+          label: "ملف PDF / كتالوج",
+          badgeClass: "badge-pdf",
+        },
+        facebook: {
+          icon: "fa-brands fa-facebook-f",
+          label: "فيسبوك",
+          badgeClass: "badge-facebook",
+        },
+        instagram: {
+          icon: "fa-brands fa-instagram",
+          label: "انستجرام",
+          badgeClass: "badge-instagram",
+        },
+        tiktok: {
+          icon: "fa-brands fa-tiktok",
+          label: "تيك توك",
+          badgeClass: "badge-tiktok",
+        },
+        youtube: {
+          icon: "fa-brands fa-youtube",
+          label: "يوتيوب",
+          badgeClass: "badge-youtube",
+        },
+        custom: {
+          icon: "fa-solid fa-link",
+          label: "رابط عام",
+          badgeClass: "badge-custom",
+        },
+      };
+
+      function hideAllViews() {
+        document.getElementById("card-view").classList.add("hidden");
+        document.getElementById("generator-view").classList.add("hidden");
+        document.getElementById("loading-state").classList.add("hidden");
+        document.getElementById("error-state").classList.add("hidden");
+      }
+
+      function init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const cardId = urlParams.get("id");
+        const hardwareUid = urlParams.get("uid"); // Hardware UID المكتوب في الكارت
+
+        if (!cardId) {
+          showAccessError(
+            "خطأ في الرابط",
+            "لا يمكن فتح النظام بدون تمرير كارت NFC.",
+          );
+          return;
+        }
+
+        hideAllViews();
+        document.getElementById("loading-state").classList.remove("hidden");
+
+        // 1. التحقق إذا كان الكارت الممور هو كارت الآدمن الرئيسي
+        if (cardId === MASTER_ADMIN_ID) {
+          verifyAdminAccess(hardwareUid);
+        } else {
+          // 2. كارت عميل عادي - جلب بياناته والتحقق من Hardware UID
+          loadClientCard(cardId, hardwareUid);
+        }
+      }
+
+      // --- فحص صلاحية الآدمن ---
+      function verifyAdminAccess(hardwareUid) {
+        db.ref("admin_settings/masterUid")
+          .once("value")
+          .then((snapshot) => {
+            document.getElementById("loading-state").classList.add("hidden");
+            const registeredMasterUid = snapshot.val();
+
+            // التحقق من Hardware UID للآدمن لمنع نسخته
+            if (registeredMasterUid && registeredMasterUid !== hardwareUid) {
+              showAccessError(
+                "كارت آدمن غير أصلية!",
+                "تم رفض الوصول! كارت الآدمن المُمَرَّر مُنْسَخ ولا يطابق UID المسجل.",
+              );
+              return;
+            }
+
+            // فتح لوحة تحكم الآدمن للإنشاء
+            showAdminPanel();
+          })
+          .catch((err) => {
+            showAccessError("خطأ بالسيرفر", err.message);
+          });
+      }
+
+      // --- جلب كارت العميل وفحص الـ Hardware UID لمنع الكلونة ---
+      function loadClientCard(cardId, hardwareUid) {
+        db.ref("cards/" + cardId)
+          .once("value")
+          .then((snapshot) => {
+            document.getElementById("loading-state").classList.add("hidden");
+            if (!snapshot.exists()) {
+              showAccessError(
+                "كارت غير مسجل",
+                "هذا الكارت غير متواجد في قاعدة البيانات.",
+              );
+              return;
+            }
+
+            const data = snapshot.val();
+
+            // 🔒 حظر التمرير إذا كان الكارت مسجلاً برقم UID في الداتا بيز ولم يطابق الكارت الحالي
+            if (
+              data.hardwareUid &&
+              data.hardwareUid.toLowerCase() !==
+                (hardwareUid || "").toLowerCase()
+            ) {
+              showAccessError(
+                "محاولة نسخ مجهولة!",
+                "تنبيه: تم نسخ هذا الرابط على كارت آخر غير أصلي. تم رفض الوصول.",
+              );
+              return;
+            }
+
+            activeCardId = cardId;
+            activeCardData = data;
+            renderCardView(data);
+          })
+          .catch((err) => {
+            showAccessError("خطأ في الاتصال", err.message);
+          });
+      }
+
+      function renderCardView(data) {
+        document.getElementById("view-name").textContent = data.name || "";
+        document.getElementById("view-title").textContent = data.title || "";
+        document.getElementById("view-bio").textContent = data.bio || "";
+        document.getElementById("view-avatar").src =
+          data.img || "https://via.placeholder.com/150";
+
+        const container = document.getElementById("dynamic-links-container");
+        container.innerHTML = "";
+
+        if (data.links && Array.isArray(data.links)) {
+          data.links.forEach((item) => {
+            if (!item.title || !item.url) return;
+            const meta = iconTypes[item.type] || iconTypes.custom;
+            let finalUrl = item.url;
+
+            if (item.type === "whatsapp" && !finalUrl.startsWith("http")) {
+              finalUrl = `https://wa.me/${finalUrl.replace(/[^0-9]/g, "")}`;
+            } else if (item.type === "phone" && !finalUrl.startsWith("tel:")) {
+              finalUrl = `tel:${finalUrl}`;
+            } else if (
+              !finalUrl.startsWith("http") &&
+              !finalUrl.startsWith("tel:")
+            ) {
+              finalUrl = `https://${finalUrl}`;
+            }
+
+            const btn = document.createElement("a");
+            btn.href = finalUrl;
+            btn.target = "_blank";
+            btn.className = "link-item";
+            btn.innerHTML = `
+            <span class="link-left">
+              <span class="link-badge ${meta.badgeClass}"><i class="${meta.icon}"></i></span>
+              <span class="link-label">${item.title}</span>
+            </span>
+            <i class="fa-solid fa-chevron-left text-[11px] text-[var(--text-mute)]"></i>
+          `;
+            container.appendChild(btn);
+          });
+        }
+
+        // 🔒 زر التعديل لا يظهر مطلقاً للعميل إلا عند تغيير isEditable إلى true من فايربيز
+        const editContainer = document.getElementById("edit-action-container");
+        if (data.isEditable === true) {
+          editContainer.classList.remove("hidden");
+        } else {
+          editContainer.classList.add("hidden");
+        }
+
+        document.getElementById("card-view").classList.remove("hidden");
+      }
+
+      // --- فتح لوحة الآدمن (لإنشاء الكروت فقط) ---
+      // 1. فتح اللوحة لإنشاء كارت جديد (يُسمح بإدخال ID و Hardware UID)
+      function showAdminPanel() {
+        hideAllViews();
+        document.getElementById("generator-view").classList.remove("hidden");
+
+        const cardIdInput = document.getElementById("input-card-id");
+        const hardwareUidInput = document.getElementById("input-hardware-uid");
+
+        // تفعيل الخانات للإنشاء الجديد
+        cardIdInput.disabled = false;
+        cardIdInput.classList.remove("opacity-50", "cursor-not-allowed");
+        cardIdInput.value =
+          "card_" + Math.random().toString(36).substring(2, 8);
+
+        hardwareUidInput.disabled = false;
+        hardwareUidInput.classList.remove("opacity-50", "cursor-not-allowed");
+        hardwareUidInput.value = "";
+
+        document.getElementById("custom-links-builder").innerHTML = "";
+        addLinkRow("تقييم جوجل", "", "google");
+        addLinkRow("واتساب", "", "whatsapp");
+      }
+
+      // 2. وضع التعديل (قفل وتجميد ID و Hardware UID ومنع تغييرهما)
+      function editCurrentCard() {
+        if (activeCardData && activeCardData.isEditable === true) {
+          hideAllViews();
+          document.getElementById("generator-view").classList.remove("hidden");
+
+          // 🔒 قفل خانة كود الكارت
+          const cardIdInput = document.getElementById("input-card-id");
+          cardIdInput.value = activeCardId;
+          cardIdInput.disabled = true;
+          cardIdInput.classList.add("opacity-50", "cursor-not-allowed");
+
+          // 🔒 قفل خانة الـ Hardware UID
+          const hardwareUidInput =
+            document.getElementById("input-hardware-uid");
+          hardwareUidInput.value = activeCardData.hardwareUid || "";
+          hardwareUidInput.disabled = true;
+          hardwareUidInput.classList.add("opacity-50", "cursor-not-allowed");
+
+          // تعبئة باقي البيانات القابلة للتعديل
+          document.getElementById("input-name").value =
+            activeCardData.name || "";
+          document.getElementById("input-title").value =
+            activeCardData.title || "";
+          document.getElementById("input-img").value = activeCardData.img || "";
+          document.getElementById("input-bio").value = activeCardData.bio || "";
+
+          const builder = document.getElementById("custom-links-builder");
+          builder.innerHTML = "";
+          if (activeCardData.links) {
+            activeCardData.links.forEach((l) =>
+              addLinkRow(l.title, l.url, l.type),
+            );
+          }
+        }
+      }
+
+      function addLinkRow(title = "", url = "", type = "custom") {
+        const container = document.getElementById("custom-links-builder");
+        const row = document.createElement("div");
+        row.className =
+          "flex flex-col sm:flex-row gap-2 bg-[var(--surface-2)] p-3 rounded-xl border border-[var(--line-soft)]";
+
+        let optionsHtml = "";
+        Object.keys(iconTypes).forEach((k) => {
+          optionsHtml += `<option value="${k}" ${k === type ? "selected" : ""}>${iconTypes[k].label}</option>`;
+        });
+
+        row.innerHTML = `
+        <select class="link-type field-input text-xs sm:w-1/4">${optionsHtml}</select>
+        <input type="text" value="${title}" placeholder="العنوان" class="link-title field-input text-xs sm:w-1/3">
+        <input type="text" value="${url}" placeholder="الرابط / الرقم" class="link-url field-input text-xs sm:w-1/3">
+        <button type="button" onclick="this.parentElement.remove()" class="text-rose-400 p-2"><i class="fa-solid fa-trash"></i></button>
+      `;
+        container.appendChild(row);
+      }
+
+      // --- حفظ الكارت في Firebase مع ربطه بـ Hardware UID ---
+      function saveCardToFirebase() {
+        const cardId = document.getElementById("input-card-id").value.trim();
+        const hardwareUid = document
+          .getElementById("input-hardware-uid")
+          .value.trim();
+        const name = document.getElementById("input-name").value.trim();
+
+        if (!cardId || !name || !hardwareUid) {
+          alert(
+            "برجاء كتابة كود الكارت، الاسم، والرقم التسلسلي (Hardware UID) للشريحة!",
+          );
+          return;
+        }
+
+        const links = [];
+        document
+          .querySelectorAll("#custom-links-builder > div")
+          .forEach((r) => {
+            const t = r.querySelector(".link-title").value.trim();
+            const u = r.querySelector(".link-url").value.trim();
+            const type = r.querySelector(".link-type").value;
+            if (t && u) links.push({ title: t, url: u, type: type });
+          });
+
+        const payload = {
+          hardwareUid: hardwareUid, // 🔒 ربط الكارت بالرقم التسلسلي الفيزيائي
+          name: name,
+          title: document.getElementById("input-title").value.trim(),
+          img: document.getElementById("input-img").value.trim(),
+          bio: document.getElementById("input-bio").value.trim(),
+          links: links,
+          isEditable: false, // 🔒 ينشأ مقفولاً تلقائياً حتى يتم تغييره من الداتا بيز
+          updatedAt: Date.now(),
+        };
+
+        db.ref("cards/" + cardId)
+          .set(payload)
+          .then(() => {
+            const baseUrl = window.location.origin + window.location.pathname;
+            // الرابط الذي يُكتب على الشريحة ببرنامج NFC Tools ويشمل الـ UID
+            const fullNfcUrl = `${baseUrl}?id=${cardId}&uid=${hardwareUid}`;
+
+            document.getElementById("generated-nfc-url").value = fullNfcUrl;
+            document.getElementById("result-box").classList.remove("hidden");
+          })
+          .catch((err) => alert("خطأ بالحفظ: " + err.message));
+      }
+
+      function showAccessError(title, msg) {
+        hideAllViews();
+        document.getElementById("error-title").textContent = title;
+        document.getElementById("error-msg").textContent = msg;
+        document.getElementById("error-state").classList.remove("hidden");
+      }
+
+      window.addEventListener("DOMContentLoaded", init);
+    </script>
+  </body>
+</html>

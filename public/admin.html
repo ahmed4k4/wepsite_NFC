@@ -1,0 +1,2044 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="logo.png" />
+    <title>لوحة التحكم والإدارة الشاملة</title>
+
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Firebase JS SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+      :root {
+        --bg: #0a0c10;
+        --surface: #13161d;
+        --surface-2: #1a1e27;
+        --surface-3: #20242f;
+        --gold: #d4af37;
+        --gold-light: #f1da8c;
+        --cyan: #2fd9c7;
+        --line-soft: rgba(255, 255, 255, 0.07);
+        --line: rgba(212, 175, 55, 0.2);
+      }
+      body {
+        font-family: "Cairo", sans-serif;
+        background-color: var(--bg);
+        background-image:
+          radial-gradient(
+            circle at 10% 20%,
+            rgba(212, 175, 55, 0.05),
+            transparent 40%
+          ),
+          radial-gradient(
+            circle at 90% 80%,
+            rgba(47, 217, 199, 0.05),
+            transparent 40%
+          );
+        color: #f4f1ea;
+      }
+      .font-display {
+        font-family: "Tajawal", sans-serif;
+      }
+      .glass-card {
+        background: linear-gradient(
+          145deg,
+          rgba(19, 22, 29, 0.9) 0%,
+          rgba(26, 30, 39, 0.8) 100%
+        );
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--line-soft);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+      }
+      .glass-card:hover {
+        border-color: var(--line);
+      }
+      .btn-gold {
+        background: linear-gradient(
+          135deg,
+          var(--gold-light) 0%,
+          var(--gold) 100%
+        );
+        color: #111;
+        font-weight: 800;
+        transition: all 0.2s ease;
+      }
+      .btn-gold:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+      }
+      .tab-btn.active {
+        background-color: var(--surface-3);
+        color: var(--gold-light);
+        border-bottom: 2px solid var(--gold);
+      }
+      .page-num {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-soft);
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .page-num.active {
+        background: var(--gold);
+        color: #000;
+        border-color: var(--gold-light);
+      }
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(212, 175, 55, 0.3);
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex flex-col justify-between">
+    <!-- 1. شاشة تسجيل الدخول الموحدة (آدمن / يوزر) -->
+    <div
+      id="login-screen"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
+    >
+      <div
+        class="glass-card w-full max-w-md p-8 rounded-3xl text-center space-y-6 border border-amber-500/20"
+      >
+        <!-- اللوجو في شاشة الدخول -->
+        <div class="mx-auto flex items-center justify-center">
+          <img
+            src="logo.png"
+            alt="Archai Logo"
+            class="h-20 w-auto max-w-[180px] object-contain filter drop-shadow-[0_0_15px_rgba(212,175,55,0.25)]"
+          />
+        </div>
+        <div>
+          <h2 class="font-display text-2xl font-black text-white">
+            تسجيل الدخول للنظام
+          </h2>
+          <p class="text-xs text-gray-400 mt-1">أدخل بيانات حسابك للمتابعة</p>
+        </div>
+        <form onsubmit="handleLogin(event)" class="space-y-4 text-right">
+          <div>
+            <label class="block text-xs font-bold text-gray-400 mb-1"
+              >اسم المستخدم</label
+            >
+            <input
+              type="text"
+              id="login-username"
+              required
+              class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[var(--gold)]"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-400 mb-1"
+              >كلمة المرور</label
+            >
+            <input
+              type="password"
+              id="login-password"
+              required
+              class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[var(--gold)]"
+            />
+          </div>
+          <p id="login-error" class="text-xs text-rose-400 hidden">
+            <i class="fa-solid fa-circle-xmark"></i> اسم المستخدم أو كلمة المرور
+            غير صحيحة!
+          </p>
+          <button type="submit" class="w-full btn-gold py-3 rounded-xl text-sm">
+            تسجيل الدخول
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 2. الهيدر العلوى -->
+    <header
+      id="main-header"
+      class="border-b border-[var(--line-soft)] bg-[var(--surface)]/90 backdrop-blur-md sticky top-0 z-40 hidden"
+    >
+      <div
+        class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4"
+      >
+        <div class="flex items-center gap-3">
+          <!-- اللوجو في الهيدر الرئيسي -->
+          <img
+            src="logo.png"
+            alt="Archai Logo"
+            class="h-10 w-auto object-contain filter drop-shadow-[0_0_8px_rgba(212,175,55,0.2)]"
+          />
+          <div>
+            <h1 class="font-display font-extrabold text-lg text-white">
+              لوحة التحكم
+            </h1>
+            <p id="welcome-msg" class="text-[11px] text-gray-400">
+              مرحباً بك في النظام الرقمي
+            </p>
+          </div>
+        </div>
+        <button
+          onclick="logout()"
+          class="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 px-4 py-2 rounded-xl hover:bg-rose-500/20 transition"
+        >
+          <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+        </button>
+      </div>
+    </header>
+
+    <!-- 3. المحتوى الرئيسي -->
+    <main
+      id="dashboard-content"
+      class="max-w-7xl mx-auto px-4 py-6 w-full flex-1 hidden space-y-6"
+    >
+      <!-- الإحصائيات -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          id="stat-card-box"
+          class="glass-card p-5 rounded-2xl flex items-center justify-between"
+        >
+          <div>
+            <p id="stat-card-title" class="text-xs text-gray-400 font-bold">
+              إجمالي الكروت الرقمية
+            </p>
+            <h3
+              id="stat-cards-count"
+              class="text-2xl font-black text-amber-400 mt-1"
+            >
+              0
+            </h3>
+          </div>
+          <div
+            class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl"
+          >
+            <i class="fa-solid fa-address-card"></i>
+          </div>
+        </div>
+        <div
+          id="stat-qr-box"
+          class="glass-card p-5 rounded-2xl flex items-center justify-between"
+        >
+          <div>
+            <p id="stat-qr-title" class="text-xs text-gray-400 font-bold">
+              إجمالي روابط الـ QR
+            </p>
+            <h3
+              id="stat-qr-count"
+              class="text-2xl font-black text-[var(--cyan)] mt-1"
+            >
+              0
+            </h3>
+          </div>
+          <div
+            class="w-12 h-12 rounded-xl bg-cyan-500/10 text-[var(--cyan)] flex items-center justify-center text-xl"
+          >
+            <i class="fa-solid fa-qrcode"></i>
+          </div>
+        </div>
+        <div
+          class="glass-card p-5 rounded-2xl flex items-center justify-between sm:col-span-2 lg:col-span-1"
+        >
+          <div>
+            <p class="text-xs text-gray-400 font-bold">حالة النظام والاتصال</p>
+            <h3 class="text-xs font-bold text-emerald-400 mt-1">
+              <i class="fa-solid fa-circle-check"></i> قواعد البيانات متصلة
+            </h3>
+          </div>
+          <div
+            class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl"
+          >
+            <i class="fa-solid fa-network-wired"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- التبويبات -->
+      <div
+        class="flex border-b border-[var(--line-soft)] gap-2 overflow-x-auto"
+      >
+        <button
+          onclick="switchTab('cards')"
+          id="tab-cards"
+          class="tab-btn active px-5 py-3 text-xs font-bold rounded-t-xl transition whitespace-nowrap hidden"
+        >
+          <i class="fa-solid fa-id-card"></i> الكروت الرقمية (Cards)
+        </button>
+        <button
+          onclick="switchTab('qr')"
+          id="tab-qr"
+          class="tab-btn px-5 py-3 text-xs font-bold rounded-t-xl transition whitespace-nowrap hidden"
+        >
+          <i class="fa-solid fa-qrcode"></i> روابط الـ Dynamic QR
+        </button>
+        <button
+          onclick="switchTab('users')"
+          id="tab-users"
+          class="tab-btn px-5 py-3 text-xs font-bold rounded-t-xl transition whitespace-nowrap hidden"
+        >
+          <i class="fa-solid fa-users-gear"></i> إدارة المستخدمين (Users)
+        </button>
+        <button
+          onclick="switchTab('settings')"
+          id="tab-settings"
+          class="tab-btn px-5 py-3 text-xs font-bold rounded-t-xl transition whitespace-nowrap hidden"
+        >
+          <i class="fa-solid fa-user-lock"></i> إعدادات أمان الآدمن
+        </button>
+      </div>
+
+      <!-- ================= TAB 1: إدارة الكروت الرقمية ================= -->
+      <section id="section-cards" class="space-y-4 hidden">
+        <div
+          class="glass-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3"
+        >
+          <div class="flex-1 min-w-[240px] relative">
+            <i
+              class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-xs text-gray-400"
+            ></i>
+            <input
+              type="text"
+              id="cards-search-input"
+              oninput="onCardsFilterChange()"
+              placeholder="بحث بالـ ID أو الاسم..."
+              class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl pr-9 pl-3 py-2 text-xs text-white focus:outline-none focus:border-[var(--gold)]"
+            />
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <select
+              id="cards-sort-filter"
+              onchange="onCardsFilterChange()"
+              class="bg-[var(--bg)] border border-[var(--line-soft)] text-xs text-white rounded-xl p-2 focus:outline-none"
+            >
+              <option value="all">كل الكروت</option>
+              <option value="id">ترتيب حسب الـ ID</option>
+              <option value="name">ترتيب حسب الاسم</option>
+              <option value="unactive">الكروت غير المفعلة فقط</option>
+            </select>
+
+            <select
+              id="cards-user-filter"
+              onchange="onCardsFilterChange()"
+              class="bg-[var(--bg)] border border-[var(--line-soft)] text-xs text-amber-300 rounded-xl p-2 focus:outline-none hidden"
+            >
+              <option value="all">كل المستخدمين</option>
+            </select>
+
+            <button
+              id="btn-add-card"
+              onclick="openCardModal()"
+              class="btn-gold text-xs px-4 py-2 rounded-xl whitespace-nowrap hidden"
+            >
+              <i class="fa-solid fa-plus"></i> إضافة كارت جديد
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          id="cards-grid-container"
+        ></div>
+
+        <div
+          id="cards-pagination"
+          class="flex items-center justify-center gap-2 pt-4"
+        ></div>
+      </section>
+
+      <!-- ================= TAB 2: إدارة Dynamic QR ================= -->
+      <section id="section-qr" class="space-y-4 hidden">
+        <div
+          class="glass-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3"
+        >
+          <div class="flex-1 min-w-[240px] relative">
+            <i
+              class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-xs text-gray-400"
+            ></i>
+            <input
+              type="text"
+              id="qr-search-input"
+              oninput="onQrFilterChange()"
+              placeholder="بحث بالـ ID أو الاسم التعريفي..."
+              class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl pr-9 pl-3 py-2 text-xs text-white focus:outline-none focus:border-[var(--cyan)]"
+            />
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <select
+              id="qr-sort-filter"
+              onchange="onQrFilterChange()"
+              class="bg-[var(--bg)] border border-[var(--line-soft)] text-xs text-white rounded-xl p-2 focus:outline-none"
+            >
+              <option value="all">كل الـ QR</option>
+              <option value="id">ترتيب حسب الـ ID</option>
+              <option value="name">ترتيب حسب الاسم</option>
+              <option value="unactive">الـ QR غير المفعل (بدون لينك)</option>
+            </select>
+
+            <select
+              id="qr-user-filter"
+              onchange="onQrFilterChange()"
+              class="bg-[var(--bg)] border border-[var(--line-soft)] text-xs text-cyan-300 rounded-xl p-2 focus:outline-none hidden"
+            >
+              <option value="all">كل المستخدمين</option>
+            </select>
+
+            <button
+              id="btn-add-qr"
+              onclick="openQrModal()"
+              class="btn-gold text-xs px-4 py-2 rounded-xl whitespace-nowrap hidden"
+            >
+              <i class="fa-solid fa-plus"></i> إضافة QR جديد
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          id="qr-grid-container"
+        ></div>
+
+        <div
+          id="qr-pagination"
+          class="flex items-center justify-center gap-2 pt-4"
+        ></div>
+      </section>
+
+      <!-- ================= TAB 3: إدارة المستخدمين ================= -->
+      <section id="section-users" class="space-y-4 hidden">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="font-display font-bold text-white text-base">
+            حسابات المستخدمين وصلاحياتهم ودرجة الاستهلاك
+          </h2>
+          <button
+            onclick="openUserModal()"
+            class="btn-gold text-xs px-4 py-2.5 rounded-xl"
+          >
+            <i class="fa-solid fa-user-plus"></i> إضافة مستخدم جديد
+          </button>
+        </div>
+
+        <div
+          class="glass-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3"
+        >
+          <div class="flex-1 min-w-[200px] relative">
+            <i
+              class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-xs text-gray-400"
+            ></i>
+            <input
+              type="text"
+              id="users-search-input"
+              oninput="renderUsers()"
+              placeholder="بحث باسم المستخدم..."
+              class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl pr-9 pl-3 py-2 text-xs text-white focus:outline-none focus:border-[var(--gold)]"
+            />
+          </div>
+          <select
+            id="users-sort-filter"
+            onchange="renderUsers()"
+            class="bg-[var(--bg)] border border-[var(--line-soft)] text-xs text-amber-300 rounded-xl p-2 focus:outline-none"
+          >
+            <option value="default">الترتيب الافتراضي</option>
+            <option value="cards-desc">الأكثر استهلاكاً للكروت</option>
+            <option value="cards-asc">الأقل استهلاكاً للكروت</option>
+            <option value="name">ترتيب أبجدي حسب الاسم</option>
+          </select>
+        </div>
+
+        <div
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          id="users-grid-container"
+        ></div>
+      </section>
+
+      <!-- ================= TAB 4: إعدادات حساب الآدمن ================= -->
+      <section id="section-settings" class="space-y-4 hidden">
+        <div class="glass-card max-w-lg mx-auto p-6 rounded-2xl space-y-4">
+          <h2
+            class="font-display font-bold text-amber-400 text-lg border-b border-[var(--line-soft)] pb-3"
+          >
+            تحديث بيانات دخول الآدمن الرئيسي
+          </h2>
+          <form onsubmit="updateAdminCredentials(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-400 mb-1"
+                >اسم المستخدم الجديد</label
+              >
+              <input
+                type="text"
+                id="setting-username"
+                required
+                class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[var(--gold)]"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-400 mb-1"
+                >كلمة المرور الجديدة</label
+              >
+              <input
+                type="password"
+                id="setting-password"
+                required
+                class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[var(--gold)]"
+              />
+            </div>
+            <button
+              type="submit"
+              class="w-full btn-gold py-3 rounded-xl text-xs"
+            >
+              <i class="fa-solid fa-floppy-disk"></i> حفظ البيانات الجديدة
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <!-- MODAL: إضافة / تعديل كارت -->
+    <div
+      id="card-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden overflow-y-auto"
+    >
+      <div class="glass-card w-full max-w-xl p-6 rounded-2xl space-y-4 my-8">
+        <div
+          class="flex items-center justify-between border-b border-[var(--line-soft)] pb-3"
+        >
+          <h3
+            id="card-modal-title"
+            class="font-display font-bold text-white text-base"
+          >
+            إضافة / تعديل كارت
+          </h3>
+          <button
+            onclick="closeCardModal()"
+            class="text-gray-400 hover:text-white"
+          >
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        <form onsubmit="saveCardForm(event)" class="space-y-3 text-xs">
+          <input type="hidden" id="modal-card-is-edit" value="false" />
+
+          <div id="card-owner-container">
+            <label class="block font-bold text-amber-400 mb-1"
+              >تخصيص الكارت للمستخدم (المالك) *</label
+            >
+            <select
+              id="modal-card-user"
+              class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white focus:outline-none"
+            >
+              <option value="">-- بدون مالك فرعي (الآدمن) --</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-amber-400 mb-1"
+                >كود الكارت (ID) *</label
+              >
+              <input
+                type="text"
+                id="modal-card-id"
+                required
+                class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-800/50"
+              />
+            </div>
+            <div>
+              <label class="block font-bold text-amber-400 mb-1"
+                >الرقم التسلسلي (Hardware UID) *</label
+              >
+              <input
+                type="text"
+                id="modal-card-uid"
+                placeholder="04:A2:B3:C4:D5:E6:F7"
+                class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white font-mono disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-800/50"
+              />
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-gray-300 mb-1"
+                >الاسم الكامل</label
+              >
+              <input
+                type="text"
+                id="modal-card-name"
+                class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white"
+              />
+            </div>
+            <div>
+              <label class="block font-bold text-gray-300 mb-1"
+                >المسمى الوظيفي</label
+              >
+              <input
+                type="text"
+                id="modal-card-title"
+                class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white"
+              />
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-gray-300 mb-1"
+                >رابط الصورة (URL)</label
+              >
+              <input
+                type="url"
+                id="modal-card-img"
+                class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white"
+              />
+            </div>
+            <div>
+              <label class="block font-bold text-gray-300 mb-1"
+                >نبذة قصيرة</label
+              >
+              <input
+                type="text"
+                id="modal-card-bio"
+                class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white"
+              />
+            </div>
+          </div>
+          <div class="pt-2">
+            <div class="flex items-center justify-between mb-2">
+              <label class="block font-bold text-amber-300"
+                >الروابط والوصلات</label
+              >
+              <button
+                type="button"
+                onclick="addModalLinkRow()"
+                class="text-[11px] text-amber-400 font-bold bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20"
+              >
+                <i class="fa-solid fa-plus"></i> إضافة رابط
+              </button>
+            </div>
+            <div
+              id="modal-links-container"
+              class="space-y-2 max-h-40 overflow-y-auto p-2 bg-black/40 rounded-xl border border-[var(--line-soft)]"
+            ></div>
+          </div>
+          <div
+            class="flex items-center gap-2 pt-2 border-t border-[var(--line-soft)]"
+          >
+            <input
+              type="checkbox"
+              id="modal-card-editable"
+              class="rounded accent-amber-500 w-4 h-4"
+            />
+            <label
+              for="modal-card-editable"
+              class="text-xs text-amber-300 font-bold"
+              >السماح للعميل بتعديل هذا الكارت من واجهته (isEditable)</label
+            >
+          </div>
+          <div
+            class="pt-3 border-t border-[var(--line-soft)] flex justify-end gap-2"
+          >
+            <button
+              type="button"
+              onclick="closeCardModal()"
+              class="px-4 py-2 rounded-xl bg-gray-800 text-gray-300"
+            >
+              إلغاء
+            </button>
+            <button type="submit" class="btn-gold px-5 py-2 rounded-xl">
+              حفظ الكارت
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: إضافة / تعديل QR -->
+    <div
+      id="qr-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden overflow-y-auto"
+    >
+      <div class="glass-card w-full max-w-md p-6 rounded-2xl space-y-4 my-8">
+        <div
+          class="flex items-center justify-between border-b border-[var(--line-soft)] pb-3"
+        >
+          <h3
+            id="qr-modal-title"
+            class="font-display font-bold text-white text-base"
+          >
+            إضافة / تعديل رابط QR
+          </h3>
+          <button
+            onclick="closeQrModal()"
+            class="text-gray-400 hover:text-white"
+          >
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        <form onsubmit="saveQrForm(event)" class="space-y-3 text-xs">
+          <input type="hidden" id="modal-qr-is-edit" value="false" />
+
+          <div id="qr-owner-container">
+            <label class="block font-bold text-amber-400 mb-1"
+              >تخصيص الـ QR للمستخدم (المالك) *</label
+            >
+            <select
+              id="modal-qr-user"
+              class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white focus:outline-none"
+            >
+              <option value="">-- بدون مالك فرعي (الآدمن) --</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-bold text-amber-400 mb-1"
+              >كود الـ QR (ID) *</label
+            >
+            <input
+              type="text"
+              id="modal-qr-id"
+              required
+              placeholder="qr_01"
+              class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-800/50"
+            />
+          </div>
+          <div>
+            <label class="block font-bold text-gray-300 mb-1"
+              >الاسم التعريفي *</label
+            >
+            <input
+              type="text"
+              id="modal-qr-name"
+              required
+              placeholder="حملة عروض المطعم"
+              class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white"
+            />
+          </div>
+          <div>
+            <label class="block font-bold text-cyan-400 mb-1"
+              >الرابط المستهدف (Target URL)</label
+            >
+            <input
+              type="text"
+              id="modal-qr-url"
+              placeholder="https://example.com"
+              class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white font-mono"
+            />
+          </div>
+          <div
+            class="pt-3 border-t border-[var(--line-soft)] flex justify-end gap-2"
+          >
+            <button
+              type="button"
+              onclick="closeQrModal()"
+              class="px-4 py-2 rounded-xl bg-gray-800 text-gray-300"
+            >
+              إلغاء
+            </button>
+            <button type="submit" class="btn-gold px-5 py-2 rounded-xl">
+              حفظ بيانات الـ QR
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: إضافة / تعديل مستخدم -->
+    <div
+      id="user-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden overflow-y-auto"
+    >
+      <div class="glass-card w-full max-w-md p-6 rounded-2xl space-y-4 my-8">
+        <div
+          class="flex items-center justify-between border-b border-[var(--line-soft)] pb-3"
+        >
+          <h3
+            id="user-modal-title"
+            class="font-display font-bold text-white text-base"
+          >
+            إضافة مستخدم جديد
+          </h3>
+          <button
+            onclick="closeUserModal()"
+            class="text-gray-400 hover:text-white"
+          >
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        <form onsubmit="saveUserForm(event)" class="space-y-4 text-xs">
+          <input type="hidden" id="modal-user-key" value="" />
+          <div>
+            <label class="block font-bold text-amber-400 mb-1"
+              >اسم المستخدم (Username) *</label
+            >
+            <input
+              type="text"
+              id="modal-user-name"
+              required
+              class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white"
+            />
+          </div>
+          <div>
+            <label class="block font-bold text-gray-300 mb-1"
+              >كلمة المرور (Password) *</label
+            >
+            <input
+              type="text"
+              id="modal-user-pass"
+              required
+              class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white font-mono"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-amber-300 mb-1"
+                >حد الكروت المسموح (Max Cards) *</label
+              >
+              <input
+                type="number"
+                id="modal-user-max-cards"
+                required
+                min="1"
+                value="50"
+                class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white font-mono"
+              />
+            </div>
+            <div>
+              <label class="block font-bold text-cyan-300 mb-1"
+                >حد الـ QR المسموح (Max QR) *</label
+              >
+              <input
+                type="number"
+                id="modal-user-max-qr"
+                required
+                min="1"
+                value="50"
+                class="w-full bg-[var(--bg)] border border-[var(--line-soft)] rounded-xl p-2.5 text-white font-mono"
+              />
+            </div>
+          </div>
+
+          <div
+            class="bg-black/40 p-3 rounded-xl border border-[var(--line-soft)] space-y-2"
+          >
+            <p class="font-bold text-gray-300 mb-1">
+              الصلاحيات الممنوحة للمستخدم:
+            </p>
+
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                id="perm-cards"
+                class="rounded accent-amber-500 w-4 h-4"
+              />
+              <span class="text-amber-300 font-bold"
+                >صلاحية قسم الكروت الرقمية (Cards)</span
+              >
+            </label>
+
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                id="perm-qr"
+                class="rounded accent-cyan-400 w-4 h-4"
+              />
+              <span class="text-cyan-300 font-bold"
+                >صلاحية قسم الـ Dynamic QR</span
+              >
+            </label>
+          </div>
+          <div
+            class="pt-3 border-t border-[var(--line-soft)] flex justify-end gap-2"
+          >
+            <button
+              type="button"
+              onclick="closeUserModal()"
+              class="px-4 py-2 rounded-xl bg-gray-800 text-gray-300"
+            >
+              إلغاء
+            </button>
+            <button type="submit" class="btn-gold px-5 py-2 rounded-xl">
+              حفظ المستخدم
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 3. الفوتر مع العلامة المائية المتواجدة بالمنتصف -->
+    <footer
+      class="border-t border-[var(--line-soft)] py-6 px-6 bg-[var(--surface)]/40 backdrop-blur-md text-xs text-gray-400 mt-auto"
+    >
+      <div class="flex flex-col items-center justify-center gap-3 text-center">
+        <!-- Powered by Archai -->
+        <div
+          class="inline-flex items-center gap-2.5 bg-black/40 border border-[var(--line-soft)] px-4 py-1.5 rounded-full shadow-inner hover:border-amber-500/40 transition-colors"
+        >
+          <span
+            class="text-[10px] text-gray-400 uppercase tracking-widest font-bold"
+          >
+            Powered by
+          </span>
+          <div
+            class="flex items-center gap-1.5 font-black tracking-wider font-mono"
+          >
+            <img
+              src="logo.png"
+              alt="Archai"
+              class="w-4 h-4 object-contain filter drop-shadow-[0_0_5px_rgba(47,217,199,0.5)]"
+            />
+            <span
+              class="text-transparent bg-clip-text bg-gradient-to-r from-[var(--gold-light)] via-white to-[var(--cyan)]"
+            >
+              Archai
+            </span>
+          </div>
+        </div>
+
+        <!-- النص وتاريخ الحقوق -->
+        <p class="text-gray-400/80 font-medium tracking-wide">
+          لوحة التحكم والإدارة الرقمية الشاملة &copy; 2026
+        </p>
+      </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+      const firebaseConfig = {
+        databaseURL:
+          "https://mycard-nfc-default-rtdb.europe-west1.firebasedatabase.app/",
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+
+      // الحالة العامة للنظام
+      let cardsData = {};
+      let qrData = {};
+      let usersData = {};
+      let adminAccount = { username: "admin", password: "123" };
+      let currentUserSession = null;
+
+      // إعدادات الصفحات والتقسيم
+      const ITEMS_PER_PAGE = 12;
+      let cardsCurrentPage = 1;
+      let qrCurrentPage = 1;
+
+      function initApp() {
+        db.ref("admin_account").on("value", (snapshot) => {
+          if (snapshot.exists()) {
+            adminAccount = snapshot.val();
+          } else {
+            db.ref("admin_account").set(adminAccount);
+          }
+        });
+
+        const sessionStr = sessionStorage.getItem("app_user_session");
+        if (sessionStr) {
+          try {
+            currentUserSession = JSON.parse(sessionStr);
+            showDashboard();
+          } catch (e) {
+            sessionStorage.removeItem("app_user_session");
+          }
+        }
+      }
+
+      function handleLogin(e) {
+        e.preventDefault();
+        const u = document.getElementById("login-username").value.trim();
+        const p = document.getElementById("login-password").value.trim();
+        const errEl = document.getElementById("login-error");
+        errEl.classList.add("hidden");
+
+        if (u === adminAccount.username && p === adminAccount.password) {
+          currentUserSession = {
+            username: u,
+            role: "admin",
+            canCards: true,
+            canQr: true,
+          };
+          sessionStorage.setItem(
+            "app_user_session",
+            JSON.stringify(currentUserSession),
+          );
+          showDashboard();
+          return;
+        }
+
+        db.ref("users")
+          .once("value")
+          .then((snapshot) => {
+            const users = snapshot.val() || {};
+            let foundUserKey = Object.keys(users).find(
+              (k) => users[k].username === u && users[k].password === p,
+            );
+
+            if (foundUserKey) {
+              const uData = users[foundUserKey];
+              currentUserSession = {
+                username: uData.username,
+                role: "user",
+                canCards: !!uData.canCards,
+                canQr: !!uData.canQr,
+                maxCards: uData.maxCards || 50,
+                maxQr: uData.maxQr || 50,
+              };
+              sessionStorage.setItem(
+                "app_user_session",
+                JSON.stringify(currentUserSession),
+              );
+              showDashboard();
+            } else {
+              errEl.classList.remove("hidden");
+            }
+          })
+          .catch(() => errEl.classList.remove("hidden"));
+      }
+
+      function logout() {
+        sessionStorage.removeItem("app_user_session");
+        location.reload();
+      }
+
+      function showDashboard() {
+        document.getElementById("login-screen").classList.add("hidden");
+        document.getElementById("main-header").classList.remove("hidden");
+        document.getElementById("dashboard-content").classList.remove("hidden");
+
+        const isMaster = currentUserSession.role === "admin";
+        document.getElementById("welcome-msg").textContent =
+          `أهلاً بك، ${currentUserSession.username}`;
+
+        document.getElementById("stat-card-title").textContent = isMaster
+          ? "إجمالي الكروت الرقمية"
+          : "كروتي الرقمية الخاصة";
+        document.getElementById("stat-qr-title").textContent = isMaster
+          ? "إجمالي روابط الـ QR"
+          : "روابط الـ QR الخاصة بي";
+
+        if (isMaster) {
+          document.getElementById("btn-add-card")?.classList.remove("hidden");
+          document.getElementById("btn-add-qr")?.classList.remove("hidden");
+          document
+            .getElementById("cards-user-filter")
+            ?.classList.remove("hidden");
+          document.getElementById("qr-user-filter")?.classList.remove("hidden");
+        } else {
+          document.getElementById("btn-add-card")?.classList.add("hidden");
+          document.getElementById("btn-add-qr")?.classList.add("hidden");
+          document.getElementById("cards-user-filter")?.classList.add("hidden");
+          document.getElementById("qr-user-filter")?.classList.add("hidden");
+        }
+
+        if (currentUserSession.canCards)
+          document.getElementById("tab-cards").classList.remove("hidden");
+        if (currentUserSession.canQr)
+          document.getElementById("tab-qr").classList.remove("hidden");
+
+        if (isMaster) {
+          document.getElementById("tab-users").classList.remove("hidden");
+          document.getElementById("tab-settings").classList.remove("hidden");
+          document.getElementById("setting-username").value =
+            adminAccount.username;
+          document.getElementById("setting-password").value =
+            adminAccount.password;
+        }
+
+        if (currentUserSession.canCards) switchTab("cards");
+        else if (currentUserSession.canQr) switchTab("qr");
+        else if (isMaster) switchTab("users");
+
+        listenToFirebaseData();
+      }
+
+      function populateUserDropdowns() {
+        const cardUserSelect = document.getElementById("modal-card-user");
+        const cardUserFilter = document.getElementById("cards-user-filter");
+        const qrUserSelect = document.getElementById("modal-qr-user");
+        const qrUserFilter = document.getElementById("qr-user-filter");
+
+        let selectOptions =
+          '<option value="">-- بدون مالك فرعي (الآدمن) --</option>';
+        let filterOptions =
+          '<option value="all">كل المستخدمين</option><option value="__admin__">الخاصة بالآدمن فقط</option>';
+
+        Object.keys(usersData).forEach((key) => {
+          const u = usersData[key];
+          selectOptions += `<option value="${u.username}">${u.username}</option>`;
+          filterOptions += `<option value="${u.username}">${u.username}</option>`;
+        });
+
+        if (cardUserSelect) cardUserSelect.innerHTML = selectOptions;
+        if (cardUserFilter) cardUserFilter.innerHTML = filterOptions;
+        if (qrUserSelect) qrUserSelect.innerHTML = selectOptions;
+        if (qrUserFilter) qrUserFilter.innerHTML = filterOptions;
+      }
+
+      function getUserCardCount(username) {
+        let count = 0;
+        Object.values(cardsData).forEach((c) => {
+          if (c.createdBy === username) count++;
+        });
+        return count;
+      }
+
+      function getUserQrCount(username) {
+        let count = 0;
+        Object.values(qrData).forEach((q) => {
+          if (q.createdBy === username) count++;
+        });
+        return count;
+      }
+
+      function listenToFirebaseData() {
+        if (currentUserSession.canCards) {
+          db.ref("cards").on("value", (snapshot) => {
+            cardsData = snapshot.val() || {};
+            renderCards();
+            if (currentUserSession.role === "admin") renderUsers();
+          });
+        }
+        if (currentUserSession.canQr) {
+          db.ref("redirects").on("value", (snapshot) => {
+            qrData = snapshot.val() || {};
+            renderQrCodes();
+            if (currentUserSession.role === "admin") renderUsers();
+          });
+        }
+        if (currentUserSession.role === "admin") {
+          db.ref("users").on("value", (snapshot) => {
+            usersData = snapshot.val() || {};
+            populateUserDropdowns();
+            renderUsers();
+          });
+        }
+      }
+
+      function onCardsFilterChange() {
+        cardsCurrentPage = 1;
+        renderCards();
+      }
+
+      function renderCards() {
+        const container = document.getElementById("cards-grid-container");
+
+        let statCount = 0;
+        if (currentUserSession.role === "admin") {
+          statCount = Object.keys(cardsData).length;
+        } else {
+          statCount = Object.values(cardsData).filter(
+            (c) => c.createdBy === currentUserSession.username,
+          ).length;
+        }
+        document.getElementById("stat-cards-count").textContent = statCount;
+
+        let keys = Object.keys(cardsData);
+        const searchVal = document
+          .getElementById("cards-search-input")
+          .value.trim()
+          .toLowerCase();
+        const filterVal = document.getElementById("cards-sort-filter").value;
+        const userFilterVal =
+          document.getElementById("cards-user-filter").value;
+
+        if (currentUserSession.role === "admin") {
+          if (userFilterVal === "__admin__") {
+            keys = keys.filter(
+              (id) =>
+                !cardsData[id].createdBy ||
+                cardsData[id].createdBy === adminAccount.username,
+            );
+          } else if (userFilterVal !== "all") {
+            keys = keys.filter(
+              (id) => cardsData[id].createdBy === userFilterVal,
+            );
+          }
+        } else {
+          keys = keys.filter(
+            (id) => cardsData[id].createdBy === currentUserSession.username,
+          );
+        }
+
+        if (searchVal) {
+          keys = keys.filter((id) => {
+            const item = cardsData[id];
+            const nameMatch = (item.name || "")
+              .toLowerCase()
+              .includes(searchVal);
+            const idMatch = id.toLowerCase().includes(searchVal);
+            return nameMatch || idMatch;
+          });
+        }
+
+        if (filterVal === "id") {
+          keys.sort((a, b) => a.localeCompare(b));
+        } else if (filterVal === "name") {
+          keys.sort((a, b) =>
+            (cardsData[a].name || "").localeCompare(cardsData[b].name || ""),
+          );
+        } else if (filterVal === "unactive") {
+          keys = keys.filter((id) => {
+            const item = cardsData[id];
+            return (
+              !item.name || !item.hardwareUid || item.hardwareUid.trim() === ""
+            );
+          });
+        }
+
+        const totalItems = keys.length;
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
+        if (cardsCurrentPage > totalPages) cardsCurrentPage = totalPages;
+
+        const startIdx = (cardsCurrentPage - 1) * ITEMS_PER_PAGE;
+        const pageKeys = keys.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+
+        container.innerHTML = "";
+        if (pageKeys.length === 0) {
+          container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-500 text-xs">لا يوجد كروت مطابقة للبحث أو التصفية</div>`;
+          renderPagination("cards-pagination", 1, 1, (p) => {
+            cardsCurrentPage = p;
+            renderCards();
+          });
+          return;
+        }
+
+        pageKeys.forEach((id) => {
+          const item = cardsData[id];
+          const isActive = item.name && item.hardwareUid;
+          const owner = item.createdBy || "الآدمن الرئيسي";
+          const cardEl = document.createElement("div");
+          cardEl.className =
+            "glass-card p-4 rounded-2xl space-y-3 relative flex flex-col justify-between";
+
+          const deleteBtnHtml =
+            currentUserSession.role === "admin"
+              ? `<button onclick="deleteCard('${id}')" class="text-rose-400 bg-rose-500/10 px-2 py-1 rounded-lg text-xs hover:bg-rose-500/20"><i class="fa-solid fa-trash"></i></button>`
+              : "";
+
+          cardEl.innerHTML = `
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <img src="${item.img || "https://via.placeholder.com/100"}" class="w-10 h-10 rounded-xl object-cover border border-amber-500/30">
+                  <div class="min-w-0">
+                    <h4 class="font-bold text-xs text-white truncate">${item.name || "غير مفعّل / بدون اسم"}</h4>
+                    <p class="text-[10px] text-[var(--cyan)] truncate">${item.title || "لا يوجد مسمى"}</p>
+                  </div>
+                </div>
+                <span class="${isActive ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"} text-[9px] px-2 py-0.5 rounded-md border font-bold">
+                  ${isActive ? "مفعّل" : "غير مفعّل"}
+                </span>
+              </div>
+              <div class="mt-3 bg-black/40 p-2.5 rounded-xl text-[10px] space-y-1 font-mono">
+                <p class="text-amber-300 truncate"><i class="fa-solid fa-hashtag"></i> ID: ${id}</p>
+                <p class="text-gray-400 truncate"><i class="fa-solid fa-microchip"></i> UID: ${item.hardwareUid || "غير محدد"}</p>
+                <p class="text-cyan-400 truncate"><i class="fa-solid fa-user"></i> المالك: ${owner}</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-[var(--line-soft)] text-xs">
+              <button onclick="copyCardUrl('${id}', '${item.hardwareUid || ""}')" class="text-gray-400 hover:text-white text-[11px]" title="نسخ الرابط"><i class="fa-solid fa-copy"></i> نسخ الرابط</button>
+              <div class="flex gap-1.5">
+                <button onclick="editCard('${id}')" class="text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg text-xs hover:bg-amber-500/20"><i class="fa-solid fa-pen"></i> تعديل</button>
+                ${deleteBtnHtml}
+              </div>
+            </div>
+          `;
+          container.appendChild(cardEl);
+        });
+
+        renderPagination(
+          "cards-pagination",
+          cardsCurrentPage,
+          totalPages,
+          (p) => {
+            cardsCurrentPage = p;
+            renderCards();
+          },
+        );
+      }
+
+      function onQrFilterChange() {
+        qrCurrentPage = 1;
+        renderQrCodes();
+      }
+
+      function renderQrCodes() {
+        const container = document.getElementById("qr-grid-container");
+
+        let statCount = 0;
+        if (currentUserSession.role === "admin") {
+          statCount = Object.keys(qrData).length;
+        } else {
+          statCount = Object.values(qrData).filter(
+            (q) => q.createdBy === currentUserSession.username,
+          ).length;
+        }
+        document.getElementById("stat-qr-count").textContent = statCount;
+
+        let keys = Object.keys(qrData);
+        const searchVal = document
+          .getElementById("qr-search-input")
+          .value.trim()
+          .toLowerCase();
+        const filterVal = document.getElementById("qr-sort-filter").value;
+        const qrUserFilterVal = document.getElementById("qr-user-filter")
+          ? document.getElementById("qr-user-filter").value
+          : "all";
+
+        if (currentUserSession.role === "admin") {
+          if (qrUserFilterVal === "__admin__") {
+            keys = keys.filter(
+              (id) =>
+                !qrData[id].createdBy ||
+                qrData[id].createdBy === adminAccount.username,
+            );
+          } else if (qrUserFilterVal !== "all") {
+            keys = keys.filter(
+              (id) => qrData[id].createdBy === qrUserFilterVal,
+            );
+          }
+        } else {
+          keys = keys.filter(
+            (id) => qrData[id].createdBy === currentUserSession.username,
+          );
+        }
+
+        if (searchVal) {
+          keys = keys.filter((id) => {
+            const item = qrData[id];
+            const nameMatch = (item.name || "")
+              .toLowerCase()
+              .includes(searchVal);
+            const idMatch = id.toLowerCase().includes(searchVal);
+            return nameMatch || idMatch;
+          });
+        }
+
+        if (filterVal === "id") {
+          keys.sort((a, b) => a.localeCompare(b));
+        } else if (filterVal === "name") {
+          keys.sort((a, b) =>
+            (qrData[a].name || "").localeCompare(qrData[b].name || ""),
+          );
+        } else if (filterVal === "unactive") {
+          keys = keys.filter(
+            (id) => !qrData[id].targetUrl || qrData[id].targetUrl.trim() === "",
+          );
+        }
+
+        const totalItems = keys.length;
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
+        if (qrCurrentPage > totalPages) qrCurrentPage = totalPages;
+
+        const startIdx = (qrCurrentPage - 1) * ITEMS_PER_PAGE;
+        const pageKeys = keys.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+
+        container.innerHTML = "";
+        if (pageKeys.length === 0) {
+          container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-500 text-xs">لا يوجد روابط QR مطابقة للبحث أو التصفية</div>`;
+          renderPagination("qr-pagination", 1, 1, (p) => {
+            qrCurrentPage = p;
+            renderQrCodes();
+          });
+          return;
+        }
+
+        pageKeys.forEach((id) => {
+          const item = qrData[id];
+          const hasUrl = item.targetUrl && item.targetUrl.trim() !== "";
+          const owner = item.createdBy || "الآدمن الرئيسي";
+          const qrEl = document.createElement("div");
+          qrEl.className =
+            "glass-card p-4 rounded-2xl space-y-3 flex flex-col justify-between";
+
+          const deleteBtnHtml =
+            currentUserSession.role === "admin"
+              ? `<button onclick="deleteQr('${id}')" class="text-rose-400 bg-rose-500/10 px-2 py-1 rounded-lg text-xs hover:bg-rose-500/20"><i class="fa-solid fa-trash"></i></button>`
+              : "";
+
+          qrEl.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="font-bold text-xs text-white truncate">${item.name || "بدون اسم تعريفي"}</h4>
+                <span class="${hasUrl ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"} text-[9px] px-2 py-0.5 rounded-md border font-bold">
+                  ${hasUrl ? "موجه ونشط" : "غير موجه"}
+                </span>
+              </div>
+              <div class="bg-black/40 p-2.5 rounded-xl space-y-1 text-[10px] font-mono mb-2">
+                <p class="text-amber-400 truncate"><i class="fa-solid fa-qrcode"></i> ID: ${id}</p>
+                <p class="text-cyan-400 truncate"><i class="fa-solid fa-user"></i> المالك: ${owner}</p>
+              </div>
+              <div class="bg-black/40 p-2.5 rounded-xl break-all text-[10px] ${hasUrl ? "text-cyan-300 font-mono" : "text-gray-500 italic"}">
+                ${hasUrl ? item.targetUrl : "لم يتم إدراج رابط موجه بعد"}
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-[var(--line-soft)] text-xs">
+              <button onclick="copyQrUrl('${id}')" class="text-gray-400 hover:text-white text-[11px]"><i class="fa-solid fa-copy"></i> نسخ الرابط</button>
+              <div class="flex gap-1.5">
+                <button onclick="editQr('${id}')" class="text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg text-xs hover:bg-amber-500/20"><i class="fa-solid fa-pen"></i> تعديل</button>
+                ${deleteBtnHtml}
+              </div>
+            </div>
+          `;
+          container.appendChild(qrEl);
+        });
+
+        renderPagination("qr-pagination", qrCurrentPage, totalPages, (p) => {
+          qrCurrentPage = p;
+          renderQrCodes();
+        });
+      }
+
+      function renderPagination(
+        containerId,
+        currentPage,
+        totalPages,
+        onPageChange,
+      ) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+        if (totalPages <= 1) return;
+
+        const prevBtn = document.createElement("button");
+        prevBtn.className = `page-num ${currentPage === 1 ? "opacity-40 cursor-not-allowed" : ""}`;
+        prevBtn.innerHTML = `<i class="fa-solid fa-chevron-right"></i>`;
+        prevBtn.onclick = () => {
+          if (currentPage > 1) onPageChange(currentPage - 1);
+        };
+        container.appendChild(prevBtn);
+
+        for (let i = 1; i <= totalPages; i++) {
+          if (
+            i === 1 ||
+            i === totalPages ||
+            (i >= currentPage - 2 && i <= currentPage + 2)
+          ) {
+            const numBtn = document.createElement("button");
+            numBtn.className = `page-num ${i === currentPage ? "active" : ""}`;
+            numBtn.textContent = i;
+            numBtn.onclick = () => onPageChange(i);
+            container.appendChild(numBtn);
+          } else if (i === currentPage - 3 || i === currentPage + 3) {
+            const dots = document.createElement("span");
+            dots.className = "text-gray-500 text-xs px-1";
+            dots.textContent = "...";
+            container.appendChild(dots);
+          }
+        }
+
+        const nextBtn = document.createElement("button");
+        nextBtn.className = `page-num ${currentPage === totalPages ? "opacity-40 cursor-not-allowed" : ""}`;
+        nextBtn.innerHTML = `<i class="fa-solid fa-chevron-left"></i>`;
+        nextBtn.onclick = () => {
+          if (currentPage < totalPages) onPageChange(currentPage + 1);
+        };
+        container.appendChild(nextBtn);
+      }
+
+      function renderUsers() {
+        const container = document.getElementById("users-grid-container");
+        if (!container) return;
+        container.innerHTML = "";
+        let keys = Object.keys(usersData);
+
+        const searchInput = document.getElementById("users-search-input");
+        const sortSelect = document.getElementById("users-sort-filter");
+
+        const searchVal = searchInput
+          ? searchInput.value.trim().toLowerCase()
+          : "";
+        const sortVal = sortSelect ? sortSelect.value : "default";
+
+        if (searchVal) {
+          keys = keys.filter((k) =>
+            (usersData[k].username || "").toLowerCase().includes(searchVal),
+          );
+        }
+
+        if (sortVal === "cards-desc") {
+          keys.sort(
+            (a, b) =>
+              getUserCardCount(usersData[b].username) -
+              getUserCardCount(usersData[a].username),
+          );
+        } else if (sortVal === "cards-asc") {
+          keys.sort(
+            (a, b) =>
+              getUserCardCount(usersData[a].username) -
+              getUserCardCount(usersData[b].username),
+          );
+        } else if (sortVal === "name") {
+          keys.sort((a, b) =>
+            (usersData[a].username || "").localeCompare(
+              usersData[b].username || "",
+            ),
+          );
+        }
+
+        if (keys.length === 0) {
+          container.innerHTML = `<div class="col-span-full text-center py-8 text-gray-500 text-xs">لا يوجد مستخدمين فرعيين مضافين أو مطابقين للبحث</div>`;
+          return;
+        }
+
+        keys.forEach((key) => {
+          const u = usersData[key];
+          const usedCardsCount = getUserCardCount(u.username);
+          const maxCardsCount = u.maxCards || 50;
+          const cardsPercentage = Math.min(
+            100,
+            Math.round((usedCardsCount / maxCardsCount) * 100),
+          );
+
+          const usedQrCount = getUserQrCount(u.username);
+          const maxQrCount = u.maxQr || 50;
+          const qrPercentage = Math.min(
+            100,
+            Math.round((usedQrCount / maxQrCount) * 100),
+          );
+
+          const userCardsList = Object.keys(cardsData)
+            .filter((cId) => cardsData[cId].createdBy === u.username)
+            .map((cId) => ({
+              id: cId,
+              name: cardsData[cId].name || "بدون اسم",
+            }));
+
+          const userQrList = Object.keys(qrData)
+            .filter((qId) => qrData[qId].createdBy === u.username)
+            .map((qId) => ({
+              id: qId,
+              name: qrData[qId].name || "بدون اسم",
+            }));
+
+          const div = document.createElement("div");
+          div.className =
+            "glass-card p-4 rounded-2xl space-y-3 flex flex-col justify-between";
+          div.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="font-bold text-sm text-white"><i class="fa-solid fa-user-gear text-amber-400"></i> ${u.username}</h4>
+                <span class="text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded-md font-mono">كلمة السر: ${u.password}</span>
+              </div>
+              <div class="bg-black/40 p-3 rounded-xl space-y-2 text-[11px]">
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-gray-400">استهلاك الكروت:</span>
+                    <span class="text-amber-300 font-bold font-mono">${usedCardsCount} / ${maxCardsCount} كارت</span>
+                  </div>
+                  <div class="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
+                    <div class="bg-amber-400 h-1.5 rounded-full transition-all" style="width: ${cardsPercentage}%"></div>
+                  </div>
+                </div>
+
+                <div class="pt-1">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-gray-400">استهلاك الـ QR:</span>
+                    <span class="text-cyan-300 font-bold font-mono">${usedQrCount} / ${maxQrCount} QR</span>
+                  </div>
+                  <div class="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
+                    <div class="bg-cyan-400 h-1.5 rounded-full transition-all" style="width: ${qrPercentage}%"></div>
+                  </div>
+                </div>
+
+                <div class="border-t border-white/5 pt-2 space-y-1">
+                  <p class="flex items-center justify-between">
+                    <span class="text-gray-400">قسم الكروت:</span>
+                    <span class="${u.canCards ? "text-emerald-400 font-bold" : "text-rose-400"}">${u.canCards ? "متاح" : "غير متاح"}</span>
+                  </p>
+                  <p class="flex items-center justify-between">
+                    <span class="text-gray-400">قسم الـ QR:</span>
+                    <span class="${u.canQr ? "text-emerald-400 font-bold" : "text-rose-400"}">${u.canQr ? "متاح" : "غير متاح"}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div class="mt-2 text-[10px] space-y-1">
+                <details class="bg-black/20 p-2 rounded-lg border border-[var(--line-soft)] cursor-pointer">
+                  <summary class="font-bold text-amber-300/90 outline-none select-none">
+                    <i class="fa-solid fa-id-card"></i> تفاصيل كروت المستخدم (${userCardsList.length})
+                  </summary>
+                  <div class="mt-2 space-y-1 max-h-24 overflow-y-auto pt-1 border-t border-[var(--line-soft)] font-mono">
+                    ${
+                      userCardsList.length > 0
+                        ? userCardsList
+                            .map(
+                              (c) =>
+                                `<div class="flex justify-between items-center text-gray-300 py-0.5 border-b border-white/5"><span>ID: ${c.id}</span> <span class="text-cyan-400 truncate max-w-[120px]">${c.name}</span></div>`,
+                            )
+                            .join("")
+                        : '<p class="text-gray-500 italic">لا يوجد كروت منشأة لهذا المستخدم</p>'
+                    }
+                  </div>
+                </details>
+
+                <details class="bg-black/20 p-2 rounded-lg border border-[var(--line-soft)] cursor-pointer">
+                  <summary class="font-bold text-cyan-300/90 outline-none select-none">
+                    <i class="fa-solid fa-qrcode"></i> تفاصيل روابط الـ QR (${userQrList.length})
+                  </summary>
+                  <div class="mt-2 space-y-1 max-h-24 overflow-y-auto pt-1 border-t border-[var(--line-soft)] font-mono">
+                    ${
+                      userQrList.length > 0
+                        ? userQrList
+                            .map(
+                              (q) =>
+                                `<div class="flex justify-between items-center text-gray-300 py-0.5 border-b border-white/5"><span>ID: ${q.id}</span> <span class="text-amber-400 truncate max-w-[120px]">${q.name}</span></div>`,
+                            )
+                            .join("")
+                        : '<p class="text-gray-500 italic">لا يوجد روابط QR لهذا المستخدم</p>'
+                    }
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-[var(--line-soft)]">
+              <button onclick="filterCardsByUser('${u.username}')" class="text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 hover:bg-cyan-500/20 transition">
+                <i class="fa-solid fa-eye"></i> عرض كروته
+              </button>
+              <div class="flex gap-1.5">
+                <button onclick="editUser('${key}')" class="text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg text-xs hover:bg-amber-500/20 transition"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="deleteUser('${key}')" class="text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg text-xs hover:bg-rose-500/20 transition"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      }
+
+      function filterCardsByUser(username) {
+        switchTab("cards");
+        const filterSelect = document.getElementById("cards-user-filter");
+        if (filterSelect) {
+          filterSelect.value = username;
+          onCardsFilterChange();
+        }
+      }
+
+      function openUserModal() {
+        document.getElementById("user-modal-title").textContent =
+          "إضافة مستخدم جديد";
+        document.getElementById("modal-user-key").value = "";
+        document.getElementById("modal-user-name").value = "";
+        document.getElementById("modal-user-pass").value = "";
+        document.getElementById("modal-user-max-cards").value = "50";
+        document.getElementById("modal-user-max-qr").value = "50";
+        document.getElementById("perm-cards").checked = true;
+        document.getElementById("perm-qr").checked = true;
+        document.getElementById("user-modal").classList.remove("hidden");
+      }
+
+      function editUser(key) {
+        const u = usersData[key];
+        if (!u) return;
+        document.getElementById("user-modal-title").textContent =
+          "تعديل المستخدم";
+        document.getElementById("modal-user-key").value = key;
+        document.getElementById("modal-user-name").value = u.username || "";
+        document.getElementById("modal-user-pass").value = u.password || "";
+        document.getElementById("modal-user-max-cards").value =
+          u.maxCards || 50;
+        document.getElementById("modal-user-max-qr").value = u.maxQr || 50;
+        document.getElementById("perm-cards").checked = !!u.canCards;
+        document.getElementById("perm-qr").checked = !!u.canQr;
+        document.getElementById("user-modal").classList.remove("hidden");
+      }
+
+      function saveUserForm(e) {
+        e.preventDefault();
+        const key =
+          document.getElementById("modal-user-key").value ||
+          "user_" + Date.now();
+        const payload = {
+          username: document.getElementById("modal-user-name").value.trim(),
+          password: document.getElementById("modal-user-pass").value.trim(),
+          maxCards:
+            parseInt(document.getElementById("modal-user-max-cards").value) ||
+            50,
+          maxQr:
+            parseInt(document.getElementById("modal-user-max-qr").value) || 50,
+          canCards: document.getElementById("perm-cards").checked,
+          canQr: document.getElementById("perm-qr").checked,
+        };
+
+        db.ref("users/" + key)
+          .set(payload)
+          .then(() => closeUserModal());
+      }
+
+      function deleteUser(key) {
+        if (confirm("هل أنت تأكد من حذف هذا المستخدم؟")) {
+          db.ref("users/" + key).remove();
+        }
+      }
+
+      function closeUserModal() {
+        document.getElementById("user-modal").classList.add("hidden");
+      }
+
+      function openCardModal() {
+        if (currentUserSession.role !== "admin") {
+          alert("صلاحية إنشاء الكروت الجديدة مقتصرة على الآدمن فقط!");
+          return;
+        }
+        populateUserDropdowns();
+        document.getElementById("card-modal-title").textContent =
+          "إضافة كارت جديد";
+        document.getElementById("modal-card-is-edit").value = "false";
+        document.getElementById("modal-card-id").disabled = false;
+        document.getElementById("modal-card-uid").disabled = false;
+        document.getElementById("modal-card-id").value =
+          "card_" + Math.random().toString(36).substring(2, 7);
+        document.getElementById("modal-card-uid").value = "";
+        document.getElementById("modal-card-user").value = "";
+        document.getElementById("modal-card-name").value = "";
+        document.getElementById("modal-card-title").value = "";
+        document.getElementById("modal-card-img").value = "";
+        document.getElementById("modal-card-bio").value = "";
+        document.getElementById("modal-card-editable").checked = false;
+        document.getElementById("modal-links-container").innerHTML = "";
+
+        document
+          .getElementById("card-owner-container")
+          .classList.remove("hidden");
+
+        addModalLinkRow("واتساب", "", "whatsapp");
+        document.getElementById("card-modal").classList.remove("hidden");
+      }
+
+      function editCard(id) {
+        populateUserDropdowns();
+        const item = cardsData[id];
+        if (!item) return;
+
+        if (
+          currentUserSession.role !== "admin" &&
+          item.createdBy !== currentUserSession.username
+        ) {
+          alert("غير مسموح لك بتعديل كارت لا يخص حسابك!");
+          return;
+        }
+
+        const isUser = currentUserSession.role !== "admin";
+
+        document.getElementById("card-modal-title").textContent =
+          "تعديل الكارت (" + id + ")";
+        document.getElementById("modal-card-is-edit").value = "true";
+        document.getElementById("modal-card-id").value = id;
+        document.getElementById("modal-card-id").disabled = true;
+        document.getElementById("modal-card-user").value = item.createdBy || "";
+        document.getElementById("modal-card-uid").value =
+          item.hardwareUid || "";
+        document.getElementById("modal-card-uid").disabled = isUser;
+        document.getElementById("modal-card-name").value = item.name || "";
+        document.getElementById("modal-card-title").value = item.title || "";
+        document.getElementById("modal-card-img").value = item.img || "";
+        document.getElementById("modal-card-bio").value = item.bio || "";
+        document.getElementById("modal-card-editable").checked =
+          !!item.isEditable;
+        document.getElementById("modal-links-container").innerHTML = "";
+
+        if (currentUserSession.role === "admin") {
+          document
+            .getElementById("card-owner-container")
+            .classList.remove("hidden");
+        } else {
+          document
+            .getElementById("card-owner-container")
+            .classList.add("hidden");
+        }
+
+        if (item.links && item.links.length > 0) {
+          item.links.forEach((l) => addModalLinkRow(l.title, l.url, l.type));
+        } else {
+          addModalLinkRow("واتساب", "", "whatsapp");
+        }
+        document.getElementById("card-modal").classList.remove("hidden");
+      }
+
+      function addModalLinkRow(title = "", url = "", type = "whatsapp") {
+        const container = document.getElementById("modal-links-container");
+        const rowId = "link_row_" + Math.random().toString(36).substr(2, 5);
+        const div = document.createElement("div");
+        div.id = rowId;
+        div.className =
+          "flex items-center gap-1.5 bg-[var(--surface-2)] p-2 rounded-xl border border-[var(--line-soft)]";
+        div.innerHTML = `
+          <select class="link-type bg-[var(--bg)] text-white text-[11px] rounded-lg p-1.5 border border-[var(--line-soft)] focus:outline-none">
+            <option value="whatsapp" ${type === "whatsapp" ? "selected" : ""}>واتساب</option>
+            <option value="google" ${type === "google" ? "selected" : ""}>تقييم جوجل</option>
+            <option value="facebook" ${type === "facebook" ? "selected" : ""}>فيسبوك</option>
+            <option value="instagram" ${type === "instagram" ? "selected" : ""}>انستجرام</option>
+            <option value="tiktok" ${type === "tiktok" ? "selected" : ""}>تيك توك</option>
+            <option value="youtube" ${type === "youtube" ? "selected" : ""}>يوتيوب</option>
+            <option value="phone" ${type === "phone" ? "selected" : ""}>هاتف</option>
+            <option value="website" ${type === "website" ? "selected" : ""}>موقع / متجر</option>
+            <option value="location" ${type === "location" ? "selected" : ""}>عنوان / خريطة</option>
+            <option value="pdf" ${type === "pdf" ? "selected" : ""}>ملف PDF</option>
+            <option value="custom" ${type === "custom" ? "selected" : ""}>رابط عام</option>
+          </select>
+          <input type="text" placeholder="عنوان" value="${title}" class="link-title w-1/3 bg-[var(--bg)] text-white text-[11px] rounded-lg p-1.5 border border-[var(--line-soft)]">
+          <input type="text" placeholder="الرابط / الرقم" value="${url}" class="link-url flex-1 bg-[var(--bg)] text-white text-[11px] rounded-lg p-1.5 border border-[var(--line-soft)]">
+          <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-rose-400 p-1"><i class="fa-solid fa-trash"></i></button>
+        `;
+        container.appendChild(div);
+      }
+
+      function saveCardForm(e) {
+        e.preventDefault();
+        const id = document.getElementById("modal-card-id").value.trim();
+        const isEdit =
+          document.getElementById("modal-card-is-edit").value === "true";
+
+        if (!isEdit && currentUserSession.role !== "admin") {
+          alert("غير مسموح بإنشاء كروت جديدة إلا للآدمن الرئيسي!");
+          return;
+        }
+
+        let assignedUser = "";
+        if (currentUserSession.role === "admin") {
+          assignedUser =
+            document.getElementById("modal-card-user").value.trim() ||
+            adminAccount.username;
+        } else {
+          assignedUser =
+            isEdit && cardsData[id]
+              ? cardsData[id].createdBy || currentUserSession.username
+              : currentUserSession.username;
+        }
+
+        if (!isEdit && assignedUser && assignedUser !== adminAccount.username) {
+          const userObj = Object.values(usersData).find(
+            (u) => u.username === assignedUser,
+          );
+          if (userObj && userObj.maxCards !== undefined) {
+            const currentCount = getUserCardCount(assignedUser);
+            if (currentCount >= userObj.maxCards) {
+              alert(
+                `لا يمكن إضافة الكارت! المستخدم [${assignedUser}] وصل للحد الأقصى للكروت المسموحة له (${userObj.maxCards}).`,
+              );
+              return;
+            }
+          }
+        }
+
+        const links = [];
+        document
+          .querySelectorAll("#modal-links-container > div")
+          .forEach((r) => {
+            const t = r.querySelector(".link-title").value.trim();
+            const u = r.querySelector(".link-url").value.trim();
+            const type = r.querySelector(".link-type").value;
+            if (t || u) links.push({ type, title: t, url: u });
+          });
+
+        const payload = {
+          createdBy: assignedUser,
+          hardwareUid: document.getElementById("modal-card-uid").value.trim(),
+          name: document.getElementById("modal-card-name").value.trim(),
+          title: document.getElementById("modal-card-title").value.trim(),
+          img: document.getElementById("modal-card-img").value.trim(),
+          bio: document.getElementById("modal-card-bio").value.trim(),
+          isEditable: document.getElementById("modal-card-editable").checked,
+          links: links,
+          updatedAt: Date.now(),
+        };
+
+        db.ref("cards/" + id)
+          .update(payload)
+          .then(() => closeCardModal());
+      }
+
+      function deleteCard(id) {
+        if (currentUserSession.role !== "admin") {
+          alert("غير مسموح للمستخدمين بحذف الكروت!");
+          return;
+        }
+        if (confirm(`هل أنت تأكد من حذف الكارت [${id}]؟`))
+          db.ref("cards/" + id).remove();
+      }
+
+      function closeCardModal() {
+        document.getElementById("card-modal").classList.add("hidden");
+      }
+
+      function openQrModal() {
+        if (currentUserSession.role !== "admin") {
+          alert("صلاحية إضافة روابط QR جديدة مقتصرة على الآدمن فقط!");
+          return;
+        }
+        populateUserDropdowns();
+        document.getElementById("qr-modal-title").textContent =
+          "إضافة رابط QR جديد";
+        document.getElementById("modal-qr-is-edit").value = "false";
+        document.getElementById("modal-qr-id").disabled = false;
+        document.getElementById("modal-qr-id").value =
+          "qr_" + Math.random().toString(36).substring(2, 7);
+        document.getElementById("modal-qr-user").value = "";
+        document.getElementById("modal-qr-name").value = "";
+        document.getElementById("modal-qr-url").value = "";
+
+        document
+          .getElementById("qr-owner-container")
+          .classList.remove("hidden");
+        document.getElementById("qr-modal").classList.remove("hidden");
+      }
+
+      function editQr(id) {
+        populateUserDropdowns();
+        const item = qrData[id];
+        if (!item) return;
+
+        if (
+          currentUserSession.role !== "admin" &&
+          item.createdBy !== currentUserSession.username
+        ) {
+          alert("غير مسموح لك بتعديل رابط QR لا يخص حسابك!");
+          return;
+        }
+
+        document.getElementById("qr-modal-title").textContent =
+          "تعديل رابط QR (" + id + ")";
+        document.getElementById("modal-qr-is-edit").value = "true";
+        document.getElementById("modal-qr-id").value = id;
+        document.getElementById("modal-qr-id").disabled = true;
+        document.getElementById("modal-qr-user").value = item.createdBy || "";
+        document.getElementById("modal-qr-name").value = item.name || "";
+        document.getElementById("modal-qr-url").value = item.targetUrl || "";
+
+        if (currentUserSession.role === "admin") {
+          document
+            .getElementById("qr-owner-container")
+            .classList.remove("hidden");
+        } else {
+          document.getElementById("qr-owner-container").classList.add("hidden");
+        }
+
+        document.getElementById("qr-modal").classList.remove("hidden");
+      }
+
+      function saveQrForm(e) {
+        e.preventDefault();
+        const id = document.getElementById("modal-qr-id").value.trim();
+        const isEdit =
+          document.getElementById("modal-qr-is-edit").value === "true";
+
+        if (!isEdit && currentUserSession.role !== "admin") {
+          alert("غير مسموح بإنشاء روابط QR جديدة إلا للآدمن الرئيسي!");
+          return;
+        }
+
+        let assignedUser = "";
+        if (currentUserSession.role === "admin") {
+          assignedUser =
+            document.getElementById("modal-qr-user").value.trim() ||
+            adminAccount.username;
+        } else {
+          assignedUser =
+            isEdit && qrData[id]
+              ? qrData[id].createdBy || currentUserSession.username
+              : currentUserSession.username;
+        }
+
+        if (!isEdit && assignedUser && assignedUser !== adminAccount.username) {
+          const userObj = Object.values(usersData).find(
+            (u) => u.username === assignedUser,
+          );
+          if (userObj && userObj.maxQr !== undefined) {
+            const currentCount = getUserQrCount(assignedUser);
+            if (currentCount >= userObj.maxQr) {
+              alert(
+                `لا يمكن إضافة الـ QR! المستخدم [${assignedUser}] وصل للحد الأقصى المسموح له من روابط الـ QR (${userObj.maxQr}).`,
+              );
+              return;
+            }
+          }
+        }
+
+        let targetUrl = document.getElementById("modal-qr-url").value.trim();
+        if (
+          targetUrl !== "" &&
+          !targetUrl.startsWith("http://") &&
+          !targetUrl.startsWith("https://")
+        ) {
+          targetUrl = "https://" + targetUrl;
+        }
+
+        db.ref("redirects/" + id)
+          .set({
+            createdBy: assignedUser,
+            name: document.getElementById("modal-qr-name").value.trim(),
+            targetUrl: targetUrl,
+            updatedAt: Date.now(),
+          })
+          .then(() => closeQrModal());
+      }
+
+      function deleteQr(id) {
+        if (currentUserSession.role !== "admin") {
+          alert("غير مسموح للمستخدمين بحذف روابط الـ QR!");
+          return;
+        }
+        if (confirm(`هل أنت تأكد من حذف كود الـ QR [${id}]؟`))
+          db.ref("redirects/" + id).remove();
+      }
+
+      function closeQrModal() {
+        document.getElementById("qr-modal").classList.add("hidden");
+      }
+
+      function updateAdminCredentials(e) {
+        e.preventDefault();
+        const newU = document.getElementById("setting-username").value.trim();
+        const newP = document.getElementById("setting-password").value.trim();
+        if (!newU || !newP) return;
+
+        db.ref("admin_account")
+          .set({ username: newU, password: newP })
+          .then(() => {
+            alert("تم تحديث بيانات دخول الآدمن بنجاح!");
+          });
+      }
+
+      function switchTab(tab) {
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document.getElementById("section-cards").classList.add("hidden");
+        document.getElementById("section-qr").classList.add("hidden");
+        document.getElementById("section-users").classList.add("hidden");
+        document.getElementById("section-settings").classList.add("hidden");
+
+        const btn = document.getElementById("tab-" + tab);
+        if (btn) btn.classList.add("active");
+        const sec = document.getElementById("section-" + tab);
+        if (sec) sec.classList.remove("hidden");
+      }
+
+      function copyCardUrl(id, uid) {
+        const url = `${window.location.origin}/index.html?id=${id}&uid=${uid || ""}`;
+        navigator.clipboard.writeText(url);
+        alert("تم نسخ رابط الكارت!");
+      }
+
+      function copyQrUrl(id) {
+        const url = `${window.location.origin}/qr.html?id=${id}`;
+        navigator.clipboard.writeText(url);
+        alert("تم نسخ رابط الـ QR الديناميكي!");
+      }
+
+      window.addEventListener("DOMContentLoaded", initApp);
+    </script>
+  </body>
+</html>

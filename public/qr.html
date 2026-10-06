@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dynamic QR Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+      body {
+        background-color: #0a0c10;
+        color: #f4f1ea;
+        font-family: "Cairo", sans-serif;
+      }
+      .glass-card {
+        background: linear-gradient(
+          145deg,
+          rgba(19, 22, 29, 0.95) 0%,
+          rgba(26, 30, 39, 0.9) 100%
+        );
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex items-center justify-center p-4">
+    <!-- 1. شاشة التحميل -->
+    <div id="loader" class="text-center space-y-3">
+      <div
+        class="w-10 h-10 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin mx-auto"
+      ></div>
+      <p class="text-xs text-gray-400">جاري قراءة كود الـ QR...</p>
+    </div>
+
+    <!-- 2. صفحة عرض الـ ID (تظهر عندما يكون الـ QR مضافاً ولكن بدون لينك) -->
+    <div
+      id="unconfigured-view"
+      class="glass-card p-6 sm:p-8 rounded-3xl text-center max-w-md w-full hidden space-y-6 border border-amber-500/30"
+    >
+      <div
+        class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center bg-amber-500/10 border border-amber-500/40 text-amber-400 text-3xl"
+      >
+        <i class="fa-solid fa-qrcode"></i>
+      </div>
+
+      <div>
+        <span
+          class="bg-amber-500/20 text-amber-300 text-[11px] px-3 py-1 rounded-full font-bold"
+        >
+          QR مضاف - غير موجه بعد
+        </span>
+        <h2 id="qr-display-name" class="font-black text-xl text-white mt-3">
+          كود الـ QR
+        </h2>
+        <p class="text-xs text-gray-400 mt-1">
+          تم التعرف على كود الـ QR بنجاح، لكن لم يتم ربطه برابط موجه حتى الآن.
+        </p>
+      </div>
+
+      <!-- صندوق عرض الـ ID المميز -->
+      <div
+        class="bg-black/60 border border-gray-800 p-4 rounded-2xl space-y-2 text-right"
+      >
+        <p class="text-[10px] text-gray-400 font-bold">
+          كود التعريف الخاص بهذا الـ QR (ID):
+        </p>
+        <div
+          class="flex items-center justify-between gap-2 bg-gray-900/90 p-3 rounded-xl border border-amber-500/30"
+        >
+          <code
+            id="qr-id-value"
+            class="font-mono text-base font-black text-amber-400 select-all"
+            >---</code
+          >
+          <button
+            onclick="copyId()"
+            class="text-xs bg-amber-500 text-black px-3 py-1.5 rounded-lg font-bold hover:bg-amber-400 transition"
+          >
+            <i class="fa-solid fa-copy"></i> نسخ
+          </button>
+        </div>
+      </div>
+
+      <a
+        href="admin.html"
+        class="inline-flex items-center justify-center gap-2 w-full bg-gray-800 hover:bg-gray-700 text-amber-400 border border-amber-500/30 py-3 rounded-xl font-bold text-xs transition"
+      >
+        <i class="fa-solid fa-sliders"></i> الذهاب للوحة التحكم لربطه برابط
+      </a>
+    </div>
+
+    <!-- 3. شاشة الخطأ إذا كان الـ ID غير موجود أصلاً في قاعدة البيانات -->
+    <div
+      id="not-found-view"
+      class="glass-card p-6 rounded-2xl text-center max-w-sm w-full hidden space-y-3 border-rose-500/30"
+    >
+      <i class="fa-solid fa-circle-exclamation text-4xl text-rose-500"></i>
+      <h3 class="font-bold text-lg text-white">الكود غير مسجل</h3>
+      <p class="text-xs text-gray-400">
+        هذا الـ QR غير مضاف في قاعدة البيانات.
+      </p>
+    </div>
+
+    <script>
+      const firebaseConfig = {
+        databaseURL:
+          "https://mycard-nfc-default-rtdb.europe-west1.firebasedatabase.app/",
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+
+      let currentQrId = "";
+
+      function processQR() {
+        const urlParams = new URLSearchParams(window.location.search);
+        currentQrId = urlParams.get("id");
+
+        if (!currentQrId) {
+          showView("not-found-view");
+          return;
+        }
+
+        db.ref("redirects/" + currentQrId)
+          .once("value")
+          .then((snapshot) => {
+            if (snapshot.exists()) {
+              const data = snapshot.val();
+              const targetUrl = (data.targetUrl || "").trim();
+
+              if (targetUrl !== "") {
+                // إذا كان اللينك موجوداً -> توجيه تلقائي فوري للموقع
+                let finalUrl = targetUrl;
+                if (
+                  !finalUrl.startsWith("http://") &&
+                  !finalUrl.startsWith("https://")
+                ) {
+                  finalUrl = "https://" + finalUrl;
+                }
+                window.location.replace(finalUrl);
+              } else {
+                // إذا كان فارغاً -> عرض صفحة الـ ID
+                document.getElementById("qr-id-value").textContent =
+                  currentQrId;
+                if (data.name) {
+                  document.getElementById("qr-display-name").textContent =
+                    data.name;
+                }
+                showView("unconfigured-view");
+              }
+            } else {
+              showView("not-found-view");
+            }
+          })
+          .catch(() => showView("not-found-view"));
+      }
+
+      function showView(viewId) {
+        document.getElementById("loader").classList.add("hidden");
+        document.getElementById("unconfigured-view").classList.add("hidden");
+        document.getElementById("not-found-view").classList.add("hidden");
+
+        document.getElementById(viewId).classList.remove("hidden");
+      }
+
+      function copyId() {
+        navigator.clipboard.writeText(currentQrId);
+        alert("تم نسخ كود الـ ID: " + currentQrId);
+      }
+
+      window.addEventListener("DOMContentLoaded", processQR);
+    </script>
+  </body>
+</html>

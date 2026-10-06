@@ -1,0 +1,14 @@
+{
+  "name": "أحمد عادل",
+  "title": "مهندس برمجيات",
+  "bio": "أهلاً بك في صفحتي الشخصية",
+  "img": "https://i.imgur.com/example.jpg",
+  "google": "https://g.page/r/xxx/review",
+  "web": "https://site.com",
+  "phone": "+201000000000",
+  "wa": "201000000000",
+  "soc": {
+    "fb": "https://facebook.com/user",
+    "ig": "https://instagram.com/user"
+  }
+}
